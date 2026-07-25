@@ -16,6 +16,7 @@ const int text_sz = 50;
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
+#include <emscripten.h>
 #endif
 
 Vector2 plot2screen(Vector2 v) {
@@ -152,6 +153,8 @@ void draw() {
   Rectangle boxBounds = {labelWidth, posY, (float)screenWidth - labelWidth,
                          height};
 
+#if defined(PLATFORM_WEB)
+#else
   // -------------------------------------------------------------
   // DRAW CONTROLS
   // -------------------------------------------------------------
@@ -162,12 +165,13 @@ void draw() {
   if (edited) {
     editMode = !editMode;
   }
-  if(edited || GetKeyPressed() != 0){
+  if (edited || GetKeyPressed() != 0) {
     expr = te_compile(eq, vars, 2, &err);
     printf("done\n");
   }
-  // GuiTextInputBox((Rectangle){0, screenHeight - 200, screenWidth, 200},
-  // "y'=", "toto", eq, 1, "t",false, false);
+// GuiTextInputBox((Rectangle){0, screenHeight - 200, screenWidth, 200},
+// "y'=", "toto", eq, 1, "t",false, false);
+#endif
 
   char fps_text[50];
   sprintf(fps_text, "%d", GetFPS());
@@ -175,13 +179,22 @@ void draw() {
   EndDrawing();
 }
 
+int set_eq(const char *txt) {
+    expr = te_compile(txt, vars, 2, &err);
+
+    return err;
+}
+
 int main(void) {
   sprintf(eq, "5*exp(x-10)-y");
 
   expr = te_compile(eq, vars, 2, &err);
 
+#if defined(PLATFORM_WEB)
+  InitWindow(screenWidth, screenHeight, "ED1Graph");
+#else
   InitWindow(screenWidth, screenHeight + text_sz * 2, "ED1Graph");
-
+#endif
   // SetTargetFPS(60);
 
   roboto = LoadFontEx("roboto/Roboto-Bold.ttf", text_sz, NULL, 0);
