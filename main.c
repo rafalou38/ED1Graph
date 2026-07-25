@@ -84,13 +84,16 @@ void draw() {
       x = center.x;
       y = center.y;
       // int d = f(center.x, center.y);
-      int d = te_eval(expr);
+      double d = te_eval(expr);
 
       Vector2 delta = {1, d};
       delta = Vector2Normalize(delta);
 
       Vector2 start = Vector2Add(center, Vector2Scale(delta, -0.3));
       Vector2 end = Vector2Add(center, Vector2Scale(delta, 0.3));
+
+      // DrawRectangleV(Vector2AddValue(plot2screen(center), -cell_sz/2.0),
+      // (Vector2){cell_sz, cell_sz}, ColorFromHSV(d*100, 0.4, 0.8));
 
       DrawLineEx(plot2screen(start), plot2screen(end), 1,
                  (Color){200, 50, 50, 255});
@@ -108,15 +111,31 @@ void draw() {
 
   DrawCircleV(GetMousePosition(), cell_sz * 0.4, BLUE);
 
-  double dt = 0.05;
+  double h = 0.05;
   for (int i = 0; i < 1000; i++) {
     prev = position;
 
-    x = position.x;
-    y = position.y;
+    double x0 = position.x;
+    double y0 = position.y;
 
-    position.x += dt;
-    position.y += dt * te_eval(expr);
+    x = x0;
+    y = y0;
+    double k1 = te_eval(expr);
+
+    x = x0 + h / 2;
+    y = y0 + h * k1 / 2;
+    double k2 = te_eval(expr);
+
+    x = x0 + h / 2;
+    y = y0 + h * k2 / 2;
+    double k3 = te_eval(expr);
+
+    x = x0 + h;
+    y = y0 + h * k3;
+    double k4 = te_eval(expr);
+
+    position.x += h;
+    position.y += (h / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
 
     DrawLineEx(plot2screen(prev), plot2screen(position), 4, BLUE);
   }
@@ -139,8 +158,11 @@ void draw() {
   GuiLabel(labelBounds, "y' =");
 
   bool keyboard_shown = false;
-  if (GuiTextBox(boxBounds, eq, 100, editMode)) {
+  bool edited = GuiTextBox(boxBounds, eq, 100, editMode);
+  if (edited) {
     editMode = !editMode;
+  }
+  if(edited || GetKeyPressed() != 0){
     expr = te_compile(eq, vars, 2, &err);
     printf("done\n");
   }
@@ -154,7 +176,7 @@ void draw() {
 }
 
 int main(void) {
-  sprintf(eq, "0.1*(x+y)");
+  sprintf(eq, "5*exp(x-10)-y");
 
   expr = te_compile(eq, vars, 2, &err);
 
@@ -193,17 +215,19 @@ int main(void) {
   GuiSetStyle(TEXTBOX, BASE_COLOR_PRESSED,
               0xFFFFFFFF); // Inverted: Black background
   GuiSetStyle(TEXTBOX, BORDER_COLOR_PRESSED, 0x000000FF); // Black border
-  GuiSetStyle(TEXTBOX, TEXT_COLOR_PRESSED, 0x000000FF); // Inverted: White text
+  GuiSetStyle(TEXTBOX, TEXT_COLOR_PRESSED,
+              0x000000FF); // Inverted: White text
 
-  #if defined(PLATFORM_WEB)
-    // 0 = match browser frame rate (60fps), 1 = simulate infinite loop
-    emscripten_set_main_loop(draw, 0, 1);
-    #else
-        SetTargetFPS(60);
-        while (!WindowShouldClose()) {
-            draw();
-        }
-    #endif
+#if defined(PLATFORM_WEB)
+                           // 0 = match browser frame rate (60fps), 1 = simulate
+                           // infinite loop
+  emscripten_set_main_loop(draw, 0, 1);
+#else
+  SetTargetFPS(60);
+  while (!WindowShouldClose()) {
+    draw();
+  }
+#endif
   CloseWindow();
 
   return 0;
