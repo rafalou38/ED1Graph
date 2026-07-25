@@ -2,7 +2,7 @@ set -xe
 
 
 emcc ./main.c ./tinyexpr/tinyexpr.c \
-  -o out/index.html \
+  -o index.html \
   --shell-file static/shell.html \
   -I ./raylib/include \
   -L ./raylib/lib \
